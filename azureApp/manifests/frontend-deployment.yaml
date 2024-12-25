@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: azurewarehouse.azurecr.io/azureApp/frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 443
+        volumeMounts:
+        - name: certs-volume
+          mountPath: /app/certs
+      volumes:
+      - name: certs-volume
+        secret:
+          secretName: certs-secret

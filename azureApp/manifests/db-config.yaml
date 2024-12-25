@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: default
+data:
+  DB_CONNECTION: "Server=db-service,1433;Database=RestaurantDB;UID=sa;Password=YourStrong@Passw0rd;Encrypt=Yes;TrustServerCertificate=Yes;"
