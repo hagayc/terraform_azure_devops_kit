@@ -1,0 +1,113 @@
+trigger:
+- "*"
+resources:
+- repo: self # Explicitly fetch the repository that triggered the pipeline
+  fetchDepth: 0
+
+variables:
+  imageRepository: 'azureApp'
+  aksClusterName: 'devcluster'
+  resourceGroupName: 'azuredevresourcegroup'
+  acrServiceConnection: $[variables.ACR_SERVICE_CONNECTION_NAME]
+  kubernetesServiceConnection: $[variables.KUBERNETES_SERVICE_CONNECTION_NAME]
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: BuildMultipleImages
+    displayName: Build Frontend, API Service, and Microsoft SQL DB
+    strategy:
+      matrix:
+        WebApp:
+          DOCKERFILE_PATH: '**/frontend/Dockerfile'
+          IMAGE_NAME: 'frontend'
+        ApiService:
+          DOCKERFILE_PATH: '**/api/Dockerfile'
+          IMAGE_NAME: 'api'
+        Worker:
+          DOCKERFILE_PATH: '**/db/Dockerfile'
+          IMAGE_NAME: 'db'
+    steps:
+    - script: |
+        SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+        echo "##vso[task.setvariable variable=shortCommitHash]$SHORT_COMMIT_HASH"
+      displayName: 'Generate Short Commit Hash'
+    - task: Docker@2
+      displayName: Build and push images to ACR
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)/$(IMAGE_NAME)
+        dockerfile: $(DOCKERFILE_PATH)
+        containerRegistry: $(acrServiceConnection)
+        tags: |
+          $(shortCommitHash)-$(Build.BuildNumber)
+          latest
+    - upload: manifests
+      artifact: manifests
+
+- stage: Deploy
+  displayName: Deploy azureApp to AKS
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to AKS
+    environment: 'azure-dev-aks-environment'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              echo "Listing all files in the source directory:"
+              ls -la $(Pipeline.Workspace)/manifests
+            displayName: 'List Files in Source Directory'
+
+          - task: KubernetesManifest@1
+            displayName: Deploy Secrets and Volumes
+            inputs:
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: default
+              manifests: |
+                $(Pipeline.Workspace)/manifests/secrets/sql-secret.yaml
+                $(Pipeline.Workspace)/manifests/secrets/certs-secret.yaml
+                $(Pipeline.Workspace)/manifests/secrets/mssql-pvc.yaml
+                $(Pipeline.Workspace)/manifests/secrets/db-connection-secret.yaml
+
+          - task: KubernetesManifest@1
+            displayName: Deploy DB Service to AKS
+            inputs:
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: default
+              manifests: |
+                $(Pipeline.Workspace)/manifests/db-deployment.yaml
+                $(Pipeline.Workspace)/manifests/db-service.yaml
+
+          - task: KubernetesManifest@1
+            displayName: Deploy API Service to AKS
+            inputs:
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: default
+              manifests: |
+                $(Pipeline.Workspace)/manifests/api-deployment.yaml
+                $(Pipeline.Workspace)/manifests/api-service.yaml
+
+          - task: KubernetesManifest@1
+            displayName: Deploy Frontend Service to AKS
+            inputs:
+              kubernetesServiceConnection: $(kubernetesServiceConnection)
+              namespace: default
+              manifests: |
+                $(Pipeline.Workspace)/manifests/frontend-deployment.yaml
+                $(Pipeline.Workspace)/manifests/frontend-service.yaml
+          - task: Kubernetes@1
+            inputs:
+              kubernetesServiceEndpoint: $(kubernetesServiceConnection)
+              command: 'rollout'
+              arguments: 'restart deployment db-deployment api-deployment frontend-deployment' 
+                       
+

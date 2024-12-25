@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    build: ./db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - backend
+
+  api:
+    build: ./api
+    ports:
+      - "8443:8443"
+    depends_on:
+      - db
+    volumes:
+      - ./certs:/app/certs
+    environment:
+      - DB_CONNECTION=mssql+pyodbc://sa:YourStrong@Passw0rd@db:1433/RestaurantDB?driver=ODBC+Driver+17+for+SQL+Server
+    networks:
+      - frontend
+      - backend
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "443:443"
+    depends_on:
+      - api
+    volumes:
+      - ./certs:/app/certs
+    networks:
+      - frontend
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  mssql_data:
+

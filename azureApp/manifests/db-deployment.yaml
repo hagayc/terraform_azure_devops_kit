@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+  labels:
+    app: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: db
+        image: azurewarehouse.azurecr.io/azureApp/db:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 1433
+        env:
+        - name: ACCEPT_EULA
+          value: "Y"
+        - name: SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sql-secret
+              key: SA_PASSWORD
+        volumeMounts:
+        - name: mssql-data
+          mountPath: /var/opt/mssql
+      volumes:
+      - name: mssql-data
+        persistentVolumeClaim:
+          claimName: mssql-pvc

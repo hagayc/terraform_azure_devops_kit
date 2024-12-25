@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  labels:
+    app: api-srv
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-srv
+  template:
+    metadata:
+      labels:
+        app: api-srv
+    spec:
+      containers:
+      - name: api-srv
+        image: azurewarehouse.azurecr.io/azureApp/api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: certs-volume
+          mountPath: /app/certs
+          readOnly: true
+      volumes:
+      - name: certs-volume
+        secret:
+          secretName: certs-secret
+
+        # Uncomment these probes if needed
+        # readinessProbe:
+        #   httpGet:
+        #     path: /healthz
+        #     port: 8443
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 5
+        #   timeoutSeconds: 5
+        #   failureThreshold: 3
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthz
+        #     port: 8443
+        #   initialDelaySeconds: 15
+        #   periodSeconds: 10
+        #   timeoutSeconds: 3
+        #   failureThreshold: 3
