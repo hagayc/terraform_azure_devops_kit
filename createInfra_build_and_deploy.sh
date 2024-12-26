@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Variables
 ORGANIZATION="azureDevOrg"
 PAT="6y8hQbMSA1vjb5PP1aHzneX57Fql8lF5Z614CVinllStN9999999999999999999"
