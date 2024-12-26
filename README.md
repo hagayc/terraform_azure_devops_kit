@@ -4,7 +4,6 @@ This project automates the deployment of a complete Azure DevOps environment, in
 It consists of a main deployment script (`createInfra_build_and_deploy.sh`) and two core directories: `azureDevInfra` (infrastructure code) and `azureApp` (application services).
 
 ## Overview
-
 ### The deployment process consists of three main stages:
 
 1. **Infrastructure Creation** - Uses Terraform to create the Azure DevOps environment
