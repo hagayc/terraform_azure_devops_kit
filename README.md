@@ -5,7 +5,7 @@ It consists of a main deployment script (`createInfra_build_and_deploy.sh`) and 
 
 ## Overview
 
-The deployment process consists of three main stages:
+### The deployment process consists of three main stages:
 
 1. **Infrastructure Creation** - Uses Terraform to create the Azure DevOps environment
 2. **Repository Setup** - Pushes infrastructure and application code to Azure repos
