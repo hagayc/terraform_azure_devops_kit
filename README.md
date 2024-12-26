@@ -1,5 +1,6 @@
 # Azure DevOps Environment Deployment
 
+
 This project automates the deployment of a complete Azure DevOps environment, including infrastructure setup and application deployment. 
 It consists of a main deployment script (`createInfra_build_and_deploy.sh`) and two core directories: `azureDevInfra` (infrastructure code) and `azureApp` (application services).
 
